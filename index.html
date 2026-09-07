@@ -518,6 +518,29 @@
     border-color: var(--accent);
     box-shadow: 0 0 0 3px var(--accent-soft);
   }
+  .checkbox-group {
+    display: flex;
+    gap: 16px;
+    padding: 9px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .checkbox-inline {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px !important;
+    font-weight: 400 !important;
+    color: var(--text) !important;
+    cursor: pointer;
+  }
+  .checkbox-inline input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    accent-color: var(--accent-dark);
+    cursor: pointer;
+  }
   .modal-actions {
     display: flex;
     justify-content: flex-end;
@@ -761,10 +784,16 @@
 
         <label>
           Responsable
-          <select id="taskResponsibleInput">
-            <option value="Gonzalo">Gonzalo</option>
-            <option value="Luciano">Luciano</option>
-          </select>
+          <span class="checkbox-group">
+            <label class="checkbox-inline">
+              <input type="checkbox" id="taskResponsibleGonzalo" value="Gonzalo" />
+              Gonzalo
+            </label>
+            <label class="checkbox-inline">
+              <input type="checkbox" id="taskResponsibleLuciano" value="Luciano" />
+              Luciano
+            </label>
+          </span>
         </label>
 
         <label>
@@ -869,6 +898,14 @@ const PEOPLE = {
 };
 function personInfo(name) {
   return PEOPLE[name] || { initial: (name || "?").charAt(0).toUpperCase(), color: "#7a7468", soft: "#eeece6" };
+}
+
+// Devuelve la lista de responsables de una tarea. Compatible con tareas viejas
+// que todavía tienen un único "responsible" (string) en vez de "responsibles" (array).
+function getResponsibles(task) {
+  if (Array.isArray(task.responsibles) && task.responsibles.length) return task.responsibles;
+  if (task.responsible) return [task.responsible];
+  return [];
 }
 
 /* ---------- Utilidades de fecha ---------- */
@@ -1026,8 +1063,12 @@ function buildColumnHeaderHTML(title, subtitle, dayTasks) {
 
   const perPerson = {};
   dayTasks.forEach((t) => {
-    const person = t.responsible || "Sin asignar";
-    perPerson[person] = (perPerson[person] || 0) + totalSeconds(t);
+    const people = getResponsibles(t).length ? getResponsibles(t) : ["Sin asignar"];
+    // Si una tarea tiene dos responsables, el tiempo real se cuenta completo
+    // para cada uno (ambos le dedicaron ese tiempo), no se reparte a la mitad.
+    people.forEach((person) => {
+      perPerson[person] = (perPerson[person] || 0) + totalSeconds(t);
+    });
   });
   const personBadges = Object.entries(perPerson)
     .map(([person, secs]) => {
@@ -1044,8 +1085,10 @@ function buildColumnHeaderHTML(title, subtitle, dayTasks) {
   let estimateTotal = 0;
   dayTasks.forEach((t) => {
     if (!t.estimatedMinutes) return;
-    const person = t.responsible || "Sin asignar";
-    perPersonEstimate[person] = (perPersonEstimate[person] || 0) + t.estimatedMinutes;
+    const people = getResponsibles(t).length ? getResponsibles(t) : ["Sin asignar"];
+    people.forEach((person) => {
+      perPersonEstimate[person] = (perPersonEstimate[person] || 0) + t.estimatedMinutes;
+    });
     estimateTotal += t.estimatedMinutes;
   });
   const estimateBadges = Object.entries(perPersonEstimate)
@@ -1181,15 +1224,15 @@ function renderCard(task) {
   catEl.textContent = task.category || "Otro";
   metaRow.appendChild(catEl);
 
-  if (task.responsible) {
-    const info = personInfo(task.responsible);
+  getResponsibles(task).forEach((person) => {
+    const info = personInfo(person);
     const personEl = document.createElement("span");
     personEl.className = "card-person";
     personEl.style.background = info.soft;
     personEl.style.color = info.color;
-    personEl.textContent = `👤 ${task.responsible}`;
+    personEl.textContent = `👤 ${person}`;
     metaRow.appendChild(personEl);
-  }
+  });
 
   if (task.estimatedMinutes) {
     const estEl = document.createElement("span");
@@ -1293,8 +1336,13 @@ function renderCard(task) {
 function startTimer(task) {
   // Una persona solo puede tener un cronómetro corriendo a la vez, pero
   // Gonzalo y Luciano pueden tener cada uno el suyo activo en simultáneo.
+  // Si una tarea tiene ambos responsables, pausa cualquier otro cronómetro
+  // de cualquiera de esas personas.
+  const people = getResponsibles(task);
   tasks.forEach((t) => {
-    if (t.timerRunning && t.id !== task.id && t.responsible === task.responsible) stopTimer(t);
+    if (!t.timerRunning || t.id === task.id) return;
+    const shared = getResponsibles(t).some((p) => people.includes(p));
+    if (shared) stopTimer(t);
   });
   task.timerRunning = true;
   task.timerStartedAt = Date.now();
@@ -1353,7 +1401,8 @@ const modal = document.getElementById("taskModal");
 const taskForm = document.getElementById("taskForm");
 const taskTitleInput = document.getElementById("taskTitleInput");
 const taskCategoryInput = document.getElementById("taskCategoryInput");
-const taskResponsibleInput = document.getElementById("taskResponsibleInput");
+const taskResponsibleGonzalo = document.getElementById("taskResponsibleGonzalo");
+const taskResponsibleLuciano = document.getElementById("taskResponsibleLuciano");
 const taskDateInput = document.getElementById("taskDateInput");
 const taskEstimateInput = document.getElementById("taskEstimateInput");
 const taskNotesInput = document.getElementById("taskNotesInput");
@@ -1387,7 +1436,8 @@ function openAddModal() {
   modalTitle.textContent = "Nueva tarea";
   taskTitleInput.value = "";
   taskCategoryInput.value = "Ventas B2B";
-  taskResponsibleInput.value = "Gonzalo";
+  taskResponsibleGonzalo.checked = true;
+  taskResponsibleLuciano.checked = false;
   taskEstimateInput.value = "";
   taskNotesInput.value = "";
   refreshDateOptions();
@@ -1401,7 +1451,9 @@ function openEditModal(task) {
   modalTitle.textContent = "Editar tarea";
   taskTitleInput.value = task.title;
   taskCategoryInput.value = task.category || "Otro";
-  taskResponsibleInput.value = task.responsible || "Gonzalo";
+  const existingResponsibles = getResponsibles(task);
+  taskResponsibleGonzalo.checked = existingResponsibles.includes("Gonzalo");
+  taskResponsibleLuciano.checked = existingResponsibles.includes("Luciano");
   taskEstimateInput.value = task.estimatedMinutes || "";
   taskNotesInput.value = task.notes || "";
   refreshDateOptions();
@@ -1426,6 +1478,14 @@ taskForm.addEventListener("submit", (e) => {
   const title = taskTitleInput.value.trim();
   if (!title) return;
 
+  const responsibles = [];
+  if (taskResponsibleGonzalo.checked) responsibles.push("Gonzalo");
+  if (taskResponsibleLuciano.checked) responsibles.push("Luciano");
+  if (responsibles.length === 0) {
+    alert("Elegí al menos un responsable (Gonzalo y/o Luciano).");
+    return;
+  }
+
   const estimateRaw = parseFloat(taskEstimateInput.value);
   const estimatedMinutes = !isNaN(estimateRaw) && estimateRaw > 0 ? estimateRaw : null;
 
@@ -1434,7 +1494,8 @@ taskForm.addEventListener("submit", (e) => {
     if (task) {
       task.title = title;
       task.category = taskCategoryInput.value;
-      task.responsible = taskResponsibleInput.value;
+      task.responsibles = responsibles;
+      delete task.responsible; // formato viejo, ya migrado a "responsibles"
       task.estimatedMinutes = estimatedMinutes;
       task.notes = taskNotesInput.value.trim();
       task.date = taskDateInput.value || null;
@@ -1444,7 +1505,7 @@ taskForm.addEventListener("submit", (e) => {
       id: uid(),
       title,
       category: taskCategoryInput.value,
-      responsible: taskResponsibleInput.value,
+      responsibles: responsibles,
       estimatedMinutes: estimatedMinutes,
       notes: taskNotesInput.value.trim(),
       date: taskDateInput.value || null,
@@ -1572,7 +1633,7 @@ function generateReport() {
   const personFilter = reportPersonSelect.value;
   const filtered = tasks
     .filter((t) => t.date && t.date >= from && t.date <= to)
-    .filter((t) => !personFilter || t.responsible === personFilter)
+    .filter((t) => !personFilter || getResponsibles(t).includes(personFilter))
     .sort((a, b) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt);
 
   lastReportTasks = filtered;
@@ -1603,14 +1664,17 @@ function generateReport() {
   `;
 
   // ---- Resumen por persona ----
+  // Una tarea con dos responsables suma completa a cada uno (no se reparte).
   const byPerson = {};
   filtered.forEach((t) => {
-    const person = t.responsible || "Sin asignar";
-    if (!byPerson[person]) byPerson[person] = { assigned: 0, done: 0, estimated: 0, tracked: 0 };
-    byPerson[person].assigned++;
-    if (t.done) byPerson[person].done++;
-    byPerson[person].estimated += t.estimatedMinutes || 0;
-    byPerson[person].tracked += totalSeconds(t);
+    const people = getResponsibles(t).length ? getResponsibles(t) : ["Sin asignar"];
+    people.forEach((person) => {
+      if (!byPerson[person]) byPerson[person] = { assigned: 0, done: 0, estimated: 0, tracked: 0 };
+      byPerson[person].assigned++;
+      if (t.done) byPerson[person].done++;
+      byPerson[person].estimated += t.estimatedMinutes || 0;
+      byPerson[person].tracked += totalSeconds(t);
+    });
   });
   const personSummaryHTML = `
     <div class="report-person-summary">
@@ -1644,7 +1708,7 @@ function generateReport() {
       <tr>
         <td class="${t.done ? "rt-title-done" : ""}">${escapeHTML(t.title)}</td>
         <td>${escapeHTML(t.category || "Otro")}</td>
-        <td>${escapeHTML(t.responsible || "Sin asignar")}</td>
+        <td>${escapeHTML(getResponsibles(t).join(" + ") || "Sin asignar")}</td>
         <td class="${t.done ? "rt-done" : "rt-pending"}">${t.done ? "Hecha" : "Pendiente"}</td>
         <td>${t.estimatedMinutes ? fmtMinutes(t.estimatedMinutes) : "—"}</td>
         <td>${totalSeconds(t) > 0 ? fmtDuration(totalSeconds(t)) : "—"}</td>
@@ -1691,7 +1755,7 @@ reportCsvBtn.addEventListener("click", () => {
     t.date,
     t.title,
     t.category || "",
-    t.responsible || "",
+    getResponsibles(t).join(" + "),
     t.done ? "Hecha" : "Pendiente",
     t.estimatedMinutes || 0,
     Math.round(totalSeconds(t) / 60),
