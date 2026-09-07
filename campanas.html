@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KORE — Campañas Ads</title>
+<style>
+  :root {
+    --bg: #f3f1ec;
+    --bg-grad-1: #eef2ea;
+    --bg-grad-2: #f6efe9;
+    --surface: #ffffff;
+    --border: #e6e1d6;
+    --text: #2b2a27;
+    --text-muted: #7a7468;
+    --accent: #7c9473;
+    --accent-dark: #5f7657;
+    --accent-soft: #e6ecdf;
+    --danger: #c1666b;
+    --radius: 14px;
+    --shadow-sm: 0 1px 2px rgba(30,26,15,0.06);
+    --shadow-md: 0 4px 14px rgba(30,26,15,0.08);
+    --shadow-lg: 0 12px 32px rgba(30,26,15,0.14);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 10% -10%, var(--bg-grad-1), transparent 45%),
+      radial-gradient(circle at 90% 0%, var(--bg-grad-2), transparent 40%),
+      var(--bg);
+    color: var(--text);
+  }
+
+  /* ---------------- Header ---------------- */
+  .hero {
+    background: linear-gradient(120deg, #4a5f8a 0%, #5f74a3 55%, #8494bd 100%);
+    color: #fdfcf9;
+    padding: 26px 28px 20px;
+    box-shadow: var(--shadow-md);
+  }
+  .hero-top {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-right: auto;
+  }
+  .brand-logo {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 15px;
+    letter-spacing: 0.5px;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255,255,255,0.25);
+  }
+  .brand-text .brand-mark {
+    font-weight: 800;
+    letter-spacing: 1px;
+    font-size: 19px;
+    display: block;
+  }
+  .brand-text .brand-sub {
+    font-size: 12.5px;
+    opacity: 0.85;
+  }
+
+  .nav-tabs {
+    display: flex;
+    gap: 4px;
+    background: rgba(255,255,255,0.14);
+    padding: 4px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .nav-tabs a {
+    text-decoration: none;
+    color: #fdfcf9;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: 999px;
+    opacity: 0.8;
+  }
+  .nav-tabs a:hover { opacity: 1; }
+  .nav-tabs a.active {
+    background: rgba(255,255,255,0.9);
+    color: #33395a;
+    opacity: 1;
+  }
+
+  .btn {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    padding: 9px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: transform .12s ease, background .15s, box-shadow .15s;
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+  .btn:active { transform: translateY(0); }
+  .btn.ghost { background: transparent; color: inherit; border-color: transparent; }
+  .btn.ghost:hover { background: rgba(255,255,255,0.16); }
+  .btn.small { padding: 7px 12px; font-size: 12.5px; }
+  .btn.primary {
+    background: #f4c94f;
+    border-color: #f4c94f;
+    color: #3a2f0c;
+    font-weight: 700;
+    box-shadow: var(--shadow-sm);
+  }
+  .btn.primary:hover { background: #f1bd2b; }
+  .btn.small[disabled] { opacity: 0.45; cursor: not-allowed; }
+
+  /* KPI stat row */
+  .stats-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 18px;
+    flex-wrap: wrap;
+  }
+  .stat-card {
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 12px;
+    padding: 12px 16px;
+    min-width: 130px;
+    flex: 1;
+    backdrop-filter: blur(6px);
+  }
+  .stat-value { font-size: 22px; font-weight: 800; line-height: 1.1; }
+  .stat-label {
+    font-size: 11.5px;
+    opacity: 0.85;
+    margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  /* ---------------- Contenido ---------------- */
+  .content {
+    padding: 22px 24px 40px;
+    max-width: 1300px;
+    margin: 0 auto;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .filter-tabs {
+    display: flex;
+    gap: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 4px;
+    border-radius: 10px;
+  }
+  .filter-tabs button {
+    border: none;
+    background: transparent;
+    padding: 7px 13px;
+    border-radius: 7px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+  .filter-tabs button.active {
+    background: var(--accent-soft);
+    color: var(--accent-dark);
+  }
+  .toolbar-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+  }
+
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    overflow-x: auto;
+  }
+  table.campaigns-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    min-width: 920px;
+  }
+  table.campaigns-table th, table.campaigns-table td {
+    text-align: left;
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  table.campaigns-table th {
+    color: var(--text-muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    background: #faf9f6;
+    position: sticky;
+    top: 0;
+  }
+  table.campaigns-table tbody tr:hover { background: #faf9f5; }
+  table.campaigns-table tbody tr:last-child td { border-bottom: none; }
+
+  .campaign-name { font-weight: 700; }
+  .campaign-dates { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+  .campaign-investment { font-weight: 700; color: var(--accent-dark); white-space: nowrap; }
+  .campaign-result { max-width: 240px; white-space: pre-wrap; color: var(--text); font-size: 12.5px; }
+  .campaign-geo { font-size: 12.5px; }
+
+  .status-badge {
+    display: inline-block;
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .status-badge.activa { background: #e1f2ee; color: #276f60; }
+  .status-badge.programada { background: #eee7f6; color: #634687; }
+  .status-badge.finalizada { background: #eeece6; color: #57524a; }
+
+  .objective-chip {
+    display: inline-block;
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: #e3edf5;
+    color: #2f5b7c;
+    white-space: nowrap;
+  }
+
+  .row-actions {
+    display: flex;
+    gap: 2px;
+    white-space: nowrap;
+  }
+  .icon-btn {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 4px 7px;
+    border-radius: 6px;
+    color: var(--text-muted);
+  }
+  .icon-btn:hover { background: var(--accent-soft); color: var(--accent-dark); }
+  .icon-btn.danger:hover { background: #f6dede; color: var(--danger); }
+
+  .empty-state {
+    text-align: center;
+    padding: 50px 20px;
+    color: var(--text-muted);
+    font-size: 13.5px;
+  }
+  .hidden { display: none !important; }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(30,26,15,0.4);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+  .modal-overlay.hidden { display: none; }
+  .modal {
+    background: var(--surface);
+    border-radius: 16px;
+    padding: 22px 24px;
+    width: 460px;
+    max-width: 94vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow-lg);
+  }
+  .modal h2 { margin: 0 0 16px; font-size: 18px; }
+  .modal form { display: flex; flex-direction: column; gap: 13px; }
+  .modal .field-row { display: flex; gap: 10px; }
+  .modal .field-row > label { flex: 1; }
+  .modal label {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  .modal input, .modal select, .modal textarea {
+    font-family: inherit;
+    padding: 9px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--text);
+    resize: vertical;
+    font-weight: 400;
+  }
+  .modal input:focus, .modal select:focus, .modal textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .footer-note {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    margin-top: 14px;
+  }
+
+  @media (max-width: 640px) {
+    .hero { padding: 20px 16px 16px; }
+    .content { padding: 16px; }
+    .stats-row { gap: 8px; }
+    .stat-card { min-width: 100px; padding: 10px 12px; }
+    .modal .field-row { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-top">
+      <div class="brand">
+        <div class="brand-logo">KO</div>
+        <div class="brand-text">
+          <span class="brand-mark">KORE</span>
+          <span class="brand-sub">Control de campañas Ads</span>
+        </div>
+      </div>
+
+      <nav class="nav-tabs">
+        <a href="index.html">Agenda</a>
+        <a href="campanas.html" class="active">Campañas Ads</a>
+      </nav>
+
+      <button id="openAddCampaign" class="btn primary">+ Nueva campaña</button>
+    </div>
+
+    <div class="stats-row" id="statsRow"></div>
+  </header>
+
+  <main class="content">
+    <div class="toolbar">
+      <div class="filter-tabs" id="filterTabs">
+        <button data-filter="all" class="active">Todas</button>
+        <button data-filter="activa">Activas</button>
+        <button data-filter="programada">Programadas</button>
+        <button data-filter="finalizada">Finalizadas</button>
+      </div>
+      <div class="toolbar-actions">
+        <button id="exportCsvBtn" class="btn ghost small">⬇ Exportar CSV</button>
+        <button id="exportBackupBtn" class="btn ghost small">⬇ Backup (.json)</button>
+        <label class="btn ghost small">
+          ⬆ Importar backup
+          <input type="file" id="importInput" accept="application/json" hidden />
+        </label>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="campaigns-table">
+        <thead>
+          <tr>
+            <th>Campaña</th>
+            <th>Estado</th>
+            <th>Fechas</th>
+            <th>Segmentación geográfica</th>
+            <th>Objetivo</th>
+            <th>Inversión</th>
+            <th>Resultado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="campaignsBody"></tbody>
+      </table>
+      <div id="emptyState" class="empty-state hidden">Todavía no cargaste ninguna campaña.</div>
+    </div>
+
+    <div class="footer-note">Los datos se guardan solo en este navegador (localStorage). Exportá seguido para tener respaldo.</div>
+  </main>
+
+  <!-- Modal nueva/editar campaña -->
+  <div id="campaignModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h2 id="modalTitle">Nueva campaña</h2>
+      <form id="campaignForm">
+        <label>
+          Nombre de la campaña
+          <input type="text" id="nameInput" required placeholder="Ej: Skincare Otoño - Rosario" />
+        </label>
+
+        <div class="field-row">
+          <label>
+            Fecha inicio
+            <input type="date" id="startDateInput" required />
+          </label>
+          <label>
+            Fecha fin
+            <input type="date" id="endDateInput" required />
+          </label>
+        </div>
+
+        <label>
+          Segmentación geográfica
+          <input type="text" id="geoInput" placeholder="Ej: Santa Fe capital + Rosario, 25-45 años" />
+        </label>
+
+        <label>
+          Objetivo
+          <select id="objectiveInput">
+            <option value="Reconocimiento de marca">Reconocimiento de marca</option>
+            <option value="Tráfico">Tráfico</option>
+            <option value="Interacción / Engagement">Interacción / Engagement</option>
+            <option value="Generación de leads">Generación de leads</option>
+            <option value="Conversiones / Ventas">Conversiones / Ventas</option>
+            <option value="Mensajes / Consultas">Mensajes / Consultas</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </label>
+
+        <label>
+          Inversión (ARS)
+          <input type="number" id="investmentInput" min="0" step="100" placeholder="Ej: 50000" />
+        </label>
+
+        <label>
+          Resultado
+          <textarea id="resultInput" rows="3" placeholder="Ej: 1.200 clics, 85 mensajes, CPL $410, 12 ventas atribuidas..."></textarea>
+        </label>
+
+        <div class="modal-actions">
+          <button type="button" id="cancelCampaign" class="btn ghost">Cancelar</button>
+          <button type="submit" class="btn primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+<script>
+const STORAGE_KEY = "kore_ads_campaigns_v1";
+
+let campaigns = loadCampaigns();
+let currentFilter = "all";
+
+function loadCampaigns() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    console.error("Error leyendo campañas guardadas", e);
+    return [];
+  }
+}
+function saveCampaigns() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(campaigns));
+}
+function uid() {
+  return "c_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+}
+
+function todayISO() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function statusOf(c) {
+  const t = todayISO();
+  if (c.startDate && t < c.startDate) return "programada";
+  if (c.endDate && t > c.endDate) return "finalizada";
+  return "activa";
+}
+function statusLabel(s) {
+  return { activa: "Activa", programada: "Programada", finalizada: "Finalizada" }[s] || s;
+}
+
+function fmtDate(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso + "T00:00:00");
+  return d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+function fmtMoney(n) {
+  if (!n && n !== 0) return "—";
+  return "$" + Number(n).toLocaleString("es-AR");
+}
+
+function escapeHTML(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+/* ---------- Render ---------- */
+const statsRowEl = document.getElementById("statsRow");
+const bodyEl = document.getElementById("campaignsBody");
+const emptyStateEl = document.getElementById("emptyState");
+
+function render() {
+  renderStats();
+  renderTable();
+}
+
+function renderStats() {
+  const total = campaigns.length;
+  const activas = campaigns.filter((c) => statusOf(c) === "activa").length;
+  const finalizadas = campaigns.filter((c) => statusOf(c) === "finalizada").length;
+  const totalInvertido = campaigns.reduce((s, c) => s + (Number(c.investment) || 0), 0);
+  const invertidoActivas = campaigns
+    .filter((c) => statusOf(c) === "activa")
+    .reduce((s, c) => s + (Number(c.investment) || 0), 0);
+
+  const stats = [
+    { value: total, label: "Campañas totales" },
+    { value: activas, label: "Activas ahora" },
+    { value: finalizadas, label: "Finalizadas" },
+    { value: fmtMoney(totalInvertido), label: "Inversión total" },
+    { value: fmtMoney(invertidoActivas), label: "Invertido en activas" },
+  ];
+
+  statsRowEl.innerHTML = stats.map((s) => `
+    <div class="stat-card">
+      <div class="stat-value">${s.value}</div>
+      <div class="stat-label">${s.label}</div>
+    </div>
+  `).join("");
+}
+
+function renderTable() {
+  const filtered = campaigns
+    .filter((c) => currentFilter === "all" || statusOf(c) === currentFilter)
+    .sort((a, b) => (b.startDate || "").localeCompare(a.startDate || ""));
+
+  if (filtered.length === 0) {
+    bodyEl.innerHTML = "";
+    emptyStateEl.classList.remove("hidden");
+    emptyStateEl.textContent = campaigns.length === 0
+      ? "Todavía no cargaste ninguna campaña."
+      : "No hay campañas que coincidan con este filtro.";
+    return;
+  }
+  emptyStateEl.classList.add("hidden");
+
+  bodyEl.innerHTML = filtered.map((c) => {
+    const status = statusOf(c);
+    return `
+      <tr data-id="${c.id}">
+        <td class="campaign-name">${escapeHTML(c.name)}</td>
+        <td><span class="status-badge ${status}">${statusLabel(status)}</span></td>
+        <td class="campaign-dates">${fmtDate(c.startDate)} → ${fmtDate(c.endDate)}</td>
+        <td class="campaign-geo">${escapeHTML(c.geo || "—")}</td>
+        <td><span class="objective-chip">${escapeHTML(c.objective || "Otro")}</span></td>
+        <td class="campaign-investment">${fmtMoney(c.investment)}</td>
+        <td class="campaign-result">${escapeHTML(c.result || "—")}</td>
+        <td>
+          <div class="row-actions">
+            <button class="icon-btn edit-btn" title="Editar">✎</button>
+            <button class="icon-btn danger delete-btn" title="Eliminar">✕</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join("");
+
+  bodyEl.querySelectorAll(".edit-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const id = e.target.closest("tr").dataset.id;
+      const c = campaigns.find((x) => x.id === id);
+      if (c) openEditModal(c);
+    });
+  });
+  bodyEl.querySelectorAll(".delete-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const id = e.target.closest("tr").dataset.id;
+      const c = campaigns.find((x) => x.id === id);
+      if (c && confirm(`¿Eliminar la campaña "${c.name}"?`)) {
+        campaigns = campaigns.filter((x) => x.id !== id);
+        saveCampaigns();
+        render();
+      }
+    });
+  });
+}
+
+/* ---------- Filtros ---------- */
+document.getElementById("filterTabs").addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-filter]");
+  if (!btn) return;
+  currentFilter = btn.dataset.filter;
+  document.querySelectorAll("#filterTabs button").forEach((b) => b.classList.toggle("active", b === btn));
+  renderTable();
+});
+
+/* ---------- Modal nueva / editar campaña ---------- */
+const modal = document.getElementById("campaignModal");
+const form = document.getElementById("campaignForm");
+const nameInput = document.getElementById("nameInput");
+const startDateInput = document.getElementById("startDateInput");
+const endDateInput = document.getElementById("endDateInput");
+const geoInput = document.getElementById("geoInput");
+const objectiveInput = document.getElementById("objectiveInput");
+const investmentInput = document.getElementById("investmentInput");
+const resultInput = document.getElementById("resultInput");
+const modalTitle = document.getElementById("modalTitle");
+
+let editingId = null;
+
+function openAddModal() {
+  editingId = null;
+  modalTitle.textContent = "Nueva campaña";
+  nameInput.value = "";
+  startDateInput.value = todayISO();
+  endDateInput.value = "";
+  geoInput.value = "";
+  objectiveInput.value = "Reconocimiento de marca";
+  investmentInput.value = "";
+  resultInput.value = "";
+  modal.classList.remove("hidden");
+  nameInput.focus();
+}
+
+function openEditModal(c) {
+  editingId = c.id;
+  modalTitle.textContent = "Editar campaña";
+  nameInput.value = c.name;
+  startDateInput.value = c.startDate || "";
+  endDateInput.value = c.endDate || "";
+  geoInput.value = c.geo || "";
+  objectiveInput.value = c.objective || "Otro";
+  investmentInput.value = c.investment || "";
+  resultInput.value = c.result || "";
+  modal.classList.remove("hidden");
+  nameInput.focus();
+}
+
+function closeModal() {
+  modal.classList.add("hidden");
+  editingId = null;
+}
+
+document.getElementById("openAddCampaign").addEventListener("click", openAddModal);
+document.getElementById("cancelCampaign").addEventListener("click", closeModal);
+modal.addEventListener("click", (e) => {
+  if (e.target === modal) closeModal();
+});
+
+form.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const name = nameInput.value.trim();
+  if (!name) return;
+
+  if (startDateInput.value && endDateInput.value && endDateInput.value < startDateInput.value) {
+    alert("La fecha de fin no puede ser anterior a la fecha de inicio.");
+    return;
+  }
+
+  const data = {
+    name,
+    startDate: startDateInput.value || null,
+    endDate: endDateInput.value || null,
+    geo: geoInput.value.trim(),
+    objective: objectiveInput.value,
+    investment: investmentInput.value ? Number(investmentInput.value) : null,
+    result: resultInput.value.trim(),
+  };
+
+  if (editingId) {
+    const c = campaigns.find((x) => x.id === editingId);
+    if (c) Object.assign(c, data);
+  } else {
+    campaigns.push({ id: uid(), ...data, createdAt: Date.now() });
+  }
+
+  saveCampaigns();
+  closeModal();
+  render();
+});
+
+/* ---------- Export CSV / Backup ---------- */
+document.getElementById("exportCsvBtn").addEventListener("click", () => {
+  if (campaigns.length === 0) return;
+  const header = ["Nombre", "Estado", "Fecha inicio", "Fecha fin", "Segmentación geográfica", "Objetivo", "Inversión (ARS)", "Resultado"];
+  const csvEscape = (v) => {
+    const str = String(v ?? "");
+    if (/[",\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
+    return str;
+  };
+  const rows = campaigns.map((c) => [
+    c.name, statusLabel(statusOf(c)), c.startDate || "", c.endDate || "",
+    c.geo || "", c.objective || "", c.investment || 0, c.result || "",
+  ]);
+  const csv = [header, ...rows].map((r) => r.map(csvEscape).join(",")).join("\n");
+  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `kore-campanas-ads-${todayISO()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById("exportBackupBtn").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(campaigns, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `kore-campanas-backup-${todayISO()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById("importInput").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const imported = JSON.parse(reader.result);
+      if (!Array.isArray(imported)) throw new Error("Formato inválido");
+      if (confirm(`Se van a importar ${imported.length} campañas. ¿Reemplazar los datos actuales?`)) {
+        campaigns = imported;
+        saveCampaigns();
+        render();
+      }
+    } catch (err) {
+      alert("No se pudo leer el archivo: " + err.message);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = "";
+});
+
+/* ---------- Init ---------- */
+render();
+</script>
+</body>
+</html>

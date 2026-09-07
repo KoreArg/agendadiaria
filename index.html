@@ -1,0 +1,1722 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KORE — Agenda de tareas</title>
+<style>
+  :root {
+    --bg: #f3f1ec;
+    --bg-grad-1: #eef2ea;
+    --bg-grad-2: #f6efe9;
+    --surface: #ffffff;
+    --border: #e6e1d6;
+    --text: #2b2a27;
+    --text-muted: #7a7468;
+    --accent: #7c9473;
+    --accent-dark: #5f7657;
+    --accent-soft: #e6ecdf;
+    --danger: #c1666b;
+    --today-ring: #d9a441;
+    --radius: 14px;
+    --shadow-sm: 0 1px 2px rgba(30,26,15,0.06);
+    --shadow-md: 0 4px 14px rgba(30,26,15,0.08);
+    --shadow-lg: 0 12px 32px rgba(30,26,15,0.14);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 10% -10%, var(--bg-grad-1), transparent 45%),
+      radial-gradient(circle at 90% 0%, var(--bg-grad-2), transparent 40%),
+      var(--bg);
+    color: var(--text);
+  }
+
+  /* ---------------- Header ---------------- */
+  .hero {
+    background: linear-gradient(120deg, #4f6146 0%, #6d8563 55%, #8ca17e 100%);
+    color: #fdfcf9;
+    padding: 26px 28px 20px;
+    box-shadow: var(--shadow-md);
+  }
+  .hero-top {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-right: auto;
+  }
+  .brand-logo {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 15px;
+    letter-spacing: 0.5px;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255,255,255,0.25);
+  }
+  .brand-text .brand-mark {
+    font-weight: 800;
+    letter-spacing: 1px;
+    font-size: 19px;
+    display: block;
+  }
+  .brand-text .brand-sub {
+    font-size: 12.5px;
+    opacity: 0.85;
+  }
+
+  .week-nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.14);
+    padding: 4px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .nav-tabs {
+    display: flex;
+    gap: 4px;
+    background: rgba(255,255,255,0.14);
+    padding: 4px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .nav-tabs a {
+    text-decoration: none;
+    color: #fdfcf9;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: 999px;
+    opacity: 0.8;
+  }
+  .nav-tabs a:hover { opacity: 1; }
+  .nav-tabs a.active {
+    background: rgba(255,255,255,0.9);
+    color: #33395a;
+    opacity: 1;
+  }
+  .week-label {
+    font-size: 13px;
+    opacity: 0.9;
+    min-width: 130px;
+    text-align: center;
+  }
+
+  .btn {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    padding: 9px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: transform .12s ease, background .15s, box-shadow .15s;
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+  .btn:active { transform: translateY(0); }
+  .btn.ghost {
+    background: transparent;
+    color: inherit;
+    border-color: transparent;
+  }
+  .btn.ghost:hover { background: rgba(255,255,255,0.16); }
+  .btn.small { padding: 7px 12px; font-size: 12.5px; }
+  .btn.primary {
+    background: #f4c94f;
+    border-color: #f4c94f;
+    color: #3a2f0c;
+    font-weight: 700;
+    box-shadow: var(--shadow-sm);
+  }
+  .btn.primary:hover { background: #f1bd2b; }
+  .file-label { display: inline-flex; align-items: center; }
+
+  /* KPI stat row */
+  .stats-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 18px;
+    flex-wrap: wrap;
+  }
+  .stat-card {
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 12px;
+    padding: 12px 16px;
+    min-width: 130px;
+    flex: 1;
+    backdrop-filter: blur(6px);
+  }
+  .stat-value {
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.1;
+  }
+  .stat-label {
+    font-size: 11.5px;
+    opacity: 0.85;
+    margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  /* ---------------- Board ---------------- */
+  .board {
+    display: flex;
+    gap: 16px;
+    padding: 22px 24px;
+    overflow-x: auto;
+    align-items: flex-start;
+  }
+
+  .column {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    min-width: 262px;
+    max-width: 290px;
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 210px);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow .15s;
+  }
+  .column:hover { box-shadow: var(--shadow-md); }
+
+  .column.backlog {
+    background: linear-gradient(180deg, #faf9f5, #ffffff 40%);
+  }
+
+  .column.today {
+    border: 2px solid var(--today-ring);
+    box-shadow: 0 0 0 3px rgba(217,164,65,0.12), var(--shadow-md);
+  }
+
+  .column-header {
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .column-title-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+  .column-title {
+    font-weight: 700;
+    font-size: 14.5px;
+    text-transform: capitalize;
+  }
+  .column-count {
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--accent-soft);
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .column-subtitle {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .column-progress-track {
+    height: 5px;
+    background: var(--accent-soft);
+    border-radius: 4px;
+    margin-top: 10px;
+    overflow: hidden;
+  }
+  .column-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-dark));
+    border-radius: 4px;
+    transition: width .3s ease;
+  }
+  .column-total {
+    font-size: 11.5px;
+    color: var(--accent-dark);
+    font-weight: 600;
+    margin-top: 6px;
+  }
+  .column-total.estimate-total {
+    color: #a1791f;
+  }
+  .person-totals-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 5px;
+  }
+  .person-total {
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .person-total.estimate {
+    background: transparent;
+    border: 1px dashed var(--border);
+  }
+  .person-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .column-body {
+    padding: 12px;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    min-height: 70px;
+  }
+
+  .column-body.drag-over {
+    background: var(--accent-soft);
+    outline: 2px dashed var(--accent);
+    outline-offset: -6px;
+    border-radius: 8px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--cat-color, var(--accent));
+    border-radius: 10px;
+    padding: 10px 11px;
+    cursor: grab;
+    box-shadow: var(--shadow-sm);
+    transition: transform .12s ease, box-shadow .12s ease, opacity .12s;
+    animation: pop-in .18s ease;
+  }
+  @keyframes pop-in {
+    from { opacity: 0; transform: translateY(4px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+  .card.done {
+    opacity: 0.55;
+  }
+  .card.done .card-title {
+    text-decoration: line-through;
+  }
+  .card.dragging {
+    opacity: 0.35;
+  }
+
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .card-top input[type="checkbox"] {
+    margin-top: 3px;
+    width: 15px;
+    height: 15px;
+    accent-color: var(--accent-dark);
+    cursor: pointer;
+  }
+  .card-title {
+    flex: 1;
+    font-size: 13.5px;
+    line-height: 1.35;
+    cursor: text;
+    font-weight: 500;
+  }
+  .card-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 6px;
+  }
+  .card-category {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--cat-color-dark, var(--accent-dark));
+    background: var(--cat-color-soft, var(--accent-soft));
+    padding: 2px 7px;
+    border-radius: 20px;
+    letter-spacing: 0.2px;
+  }
+  .card-person {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 20px;
+    letter-spacing: 0.2px;
+  }
+  .card-estimate {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted);
+    background: #f0efe9;
+    padding: 2px 7px;
+    border-radius: 20px;
+    letter-spacing: 0.2px;
+  }
+  .card-notes {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    white-space: pre-wrap;
+    line-height: 1.4;
+  }
+
+  .card-time-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 9px;
+    gap: 6px;
+    border-top: 1px dashed var(--border);
+    padding-top: 7px;
+  }
+  .time-display {
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  .time-display.running {
+    color: var(--accent-dark);
+  }
+  .time-display.running::before {
+    content: "●";
+    color: #e0533d;
+    margin-right: 4px;
+    animation: blink 1.1s infinite;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.25; }
+  }
+
+  .icon-btn {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 13.5px;
+    padding: 3px 6px;
+    border-radius: 6px;
+    color: var(--text-muted);
+    line-height: 1;
+  }
+  .icon-btn:hover { background: var(--accent-soft); color: var(--accent-dark); }
+  .icon-btn.danger:hover { background: #f6dede; color: var(--danger); }
+
+  .card-actions {
+    display: flex;
+    gap: 1px;
+  }
+
+  .empty-hint {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 22px 4px;
+    opacity: 0.7;
+  }
+
+  .footer {
+    padding: 12px 24px 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .footer-actions { display: flex; gap: 8px; }
+  .footer-note {
+    font-size: 11.5px;
+    color: var(--text-muted);
+  }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(30,26,15,0.4);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    animation: fade-in .15s ease;
+  }
+  @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+  .modal-overlay.hidden { display: none; }
+  .modal {
+    background: var(--surface);
+    border-radius: 16px;
+    padding: 22px 24px;
+    width: 380px;
+    max-width: 90vw;
+    box-shadow: var(--shadow-lg);
+    animation: pop-in .18s ease;
+  }
+  .modal h2 {
+    margin: 0 0 16px;
+    font-size: 18px;
+  }
+  .modal form {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+  }
+  .modal label {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  .modal input, .modal select, .modal textarea {
+    font-family: inherit;
+    padding: 9px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--text);
+    resize: vertical;
+    font-weight: 400;
+  }
+  .modal input:focus, .modal select:focus, .modal textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  @media (max-width: 640px) {
+    .hero { padding: 20px 16px 16px; }
+    .board { padding: 16px; }
+    .stats-row { gap: 8px; }
+    .stat-card { min-width: 100px; padding: 10px 12px; }
+  }
+
+  /* ---------------- Reporte ---------------- */
+  .report-modal {
+    width: 720px;
+    max-width: 94vw;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .report-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .report-controls label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  .report-controls select,
+  .report-controls input {
+    font-family: inherit;
+    padding: 7px 9px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    font-size: 13px;
+  }
+  .report-custom-range {
+    display: flex;
+    gap: 8px;
+  }
+  .report-custom-range.hidden { display: none; }
+  .report-controls-actions {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+  }
+  .btn.small[disabled] {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .report-output {
+    overflow-y: auto;
+    padding-top: 14px;
+    flex: 1;
+  }
+  .report-empty {
+    font-size: 13px;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 30px 10px;
+  }
+  .report-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .report-summary .stat-card {
+    background: var(--accent-soft);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    min-width: 110px;
+    flex: 1;
+    backdrop-filter: none;
+  }
+  .report-summary .stat-value { color: var(--accent-dark); font-size: 19px; }
+  .report-summary .stat-label { color: var(--text-muted); }
+
+  .report-person-summary {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .report-person-card {
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 12.5px;
+    min-width: 180px;
+    flex: 1;
+  }
+  .report-person-card .rp-name { font-weight: 800; font-size: 13.5px; margin-bottom: 4px; }
+  .report-person-card div.rp-line { display: flex; justify-content: space-between; gap: 10px; }
+
+  .report-day-group {
+    margin-bottom: 18px;
+  }
+  .report-day-title {
+    font-weight: 700;
+    font-size: 13.5px;
+    margin-bottom: 6px;
+    text-transform: capitalize;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .report-day-title .rdt-sub {
+    font-weight: 500;
+    font-size: 11.5px;
+    color: var(--text-muted);
+  }
+  table.report-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+    margin-bottom: 4px;
+  }
+  table.report-table th, table.report-table td {
+    text-align: left;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  table.report-table th {
+    color: var(--text-muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  table.report-table td.rt-done { color: var(--accent-dark); font-weight: 700; }
+  table.report-table td.rt-pending { color: var(--text-muted); }
+  .rt-title-done { text-decoration: line-through; opacity: 0.7; }
+
+  @media print {
+    body.print-report-mode > *:not(#reportModal) { display: none !important; }
+    body.print-report-mode #reportModal {
+      position: static;
+      background: none;
+      backdrop-filter: none;
+      display: block;
+      padding: 0;
+    }
+    body.print-report-mode .modal.report-modal {
+      width: 100%;
+      max-width: 100%;
+      max-height: none;
+      box-shadow: none;
+      border-radius: 0;
+      padding: 0;
+    }
+    body.print-report-mode .report-controls,
+    body.print-report-mode .modal-actions {
+      display: none !important;
+    }
+    body.print-report-mode .report-output {
+      overflow: visible;
+    }
+  }
+</style>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-top">
+      <div class="brand">
+        <div class="brand-logo">KO</div>
+        <div class="brand-text">
+          <span class="brand-mark">KORE</span>
+          <span class="brand-sub">Agenda de trabajo diario</span>
+        </div>
+      </div>
+
+      <nav class="nav-tabs">
+        <a href="index.html" class="active">Agenda</a>
+        <a href="campanas.html">Campañas Ads</a>
+      </nav>
+
+      <div class="week-nav">
+        <button id="prevWeek" class="btn ghost" title="Semana anterior">←</button>
+        <button id="todayBtn" class="btn ghost">Hoy</button>
+        <button id="nextWeek" class="btn ghost" title="Semana siguiente">→</button>
+        <span id="weekLabel" class="week-label"></span>
+      </div>
+
+      <button id="openAddTask" class="btn primary">+ Nueva tarea</button>
+    </div>
+
+    <div class="stats-row" id="statsRow"></div>
+  </header>
+
+  <main class="board" id="board">
+    <!-- Backlog + columnas de días se generan por JS -->
+  </main>
+
+  <footer class="footer">
+    <div class="footer-actions">
+      <button id="openReportBtn" class="btn ghost small">📊 Generar reporte</button>
+      <button id="exportBtn" class="btn ghost small">⬇ Exportar backup (.json)</button>
+      <label class="btn ghost small file-label">
+        ⬆ Importar backup
+        <input type="file" id="importInput" accept="application/json" hidden />
+      </label>
+    </div>
+    <div class="footer-note">Los datos se guardan solo en este navegador (localStorage). Exportá seguido para tener respaldo.</div>
+  </footer>
+
+  <!-- Modal nueva/editar tarea -->
+  <div id="taskModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h2 id="modalTitle">Nueva tarea</h2>
+      <form id="taskForm">
+        <label>
+          Título
+          <input type="text" id="taskTitleInput" required placeholder="Ej: Responder consultas mayoristas" />
+        </label>
+
+        <label>
+          Categoría
+          <select id="taskCategoryInput">
+            <option value="Ventas B2B">Ventas B2B</option>
+            <option value="Ventas B2C">Ventas B2C</option>
+            <option value="Marketing">Marketing</option>
+            <option value="Contenido / RRSS">Contenido / RRSS</option>
+            <option value="Logística">Logística</option>
+            <option value="Administración">Administración</option>
+            <option value="Diseño">Diseño</option>
+            <option value="Proveedores">Proveedores</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </label>
+
+        <label>
+          Responsable
+          <select id="taskResponsibleInput">
+            <option value="Gonzalo">Gonzalo</option>
+            <option value="Luciano">Luciano</option>
+          </select>
+        </label>
+
+        <label>
+          Fecha
+          <select id="taskDateInput"></select>
+        </label>
+
+        <label>
+          Tiempo estimado (minutos, opcional)
+          <input type="number" id="taskEstimateInput" min="0" step="5" placeholder="Ej: 30" />
+        </label>
+
+        <label>
+          Notas (opcional)
+          <textarea id="taskNotesInput" rows="2" placeholder="Detalles, links, etc."></textarea>
+        </label>
+
+        <div class="modal-actions">
+          <button type="button" id="cancelTask" class="btn ghost">Cancelar</button>
+          <button type="submit" class="btn primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal de reporte -->
+  <div id="reportModal" class="modal-overlay hidden">
+    <div class="modal report-modal">
+      <h2>Reporte de tareas</h2>
+
+      <div class="report-controls">
+        <label>
+          Período
+          <select id="reportRangeSelect">
+            <option value="day">Hoy</option>
+            <option value="week">Esta semana (Lun–Dom)</option>
+            <option value="month">Este mes</option>
+            <option value="custom">Rango personalizado</option>
+          </select>
+        </label>
+
+        <div id="reportCustomRange" class="report-custom-range hidden">
+          <label>
+            Desde
+            <input type="date" id="reportFromInput" />
+          </label>
+          <label>
+            Hasta
+            <input type="date" id="reportToInput" />
+          </label>
+        </div>
+
+        <label>
+          Responsable
+          <select id="reportPersonSelect">
+            <option value="">Todos</option>
+            <option value="Gonzalo">Gonzalo</option>
+            <option value="Luciano">Luciano</option>
+          </select>
+        </label>
+
+        <div class="report-controls-actions">
+          <button type="button" id="generateReportBtn" class="btn primary small">Generar</button>
+          <button type="button" id="reportCsvBtn" class="btn ghost small" disabled>⬇ CSV</button>
+          <button type="button" id="reportPrintBtn" class="btn ghost small" disabled>🖨 Imprimir / PDF</button>
+        </div>
+      </div>
+
+      <div id="reportOutput" class="report-output"></div>
+
+      <div class="modal-actions">
+        <button type="button" id="closeReportBtn" class="btn ghost">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ==========================================================
+   KORE — Agenda de tareas
+   App de una sola página, sin backend. Todo se guarda en
+   localStorage del navegador. Pensada para ir modificándose.
+   ========================================================== */
+
+const STORAGE_KEY = "kore_agenda_tasks_v1";
+const WEEK_START_KEY = "kore_agenda_week_start_v1";
+
+const CATEGORY_COLORS = {
+  "Ventas B2B":         { line: "#4c7ea6", soft: "#e3edf5", dark: "#2f5b7c" },
+  "Ventas B2C":         { line: "#c1698f", soft: "#f7e6ee", dark: "#95415f" },
+  "Marketing":          { line: "#8a6bb0", soft: "#eee7f6", dark: "#634687" },
+  "Contenido / RRSS":   { line: "#d18a3d", soft: "#f8ecdc", dark: "#a2621c" },
+  "Logística":          { line: "#3f9c8a", soft: "#e1f2ee", dark: "#276f60" },
+  "Administración":     { line: "#7a7468", soft: "#eeece6", dark: "#57524a" },
+  "Diseño":             { line: "#b0578a", soft: "#f6e5ee", dark: "#823c63" },
+  "Proveedores":        { line: "#a17a4f", soft: "#f2e9dc", dark: "#785a37" },
+  "Otro":               { line: "#7c9473", soft: "#e6ecdf", dark: "#5f7657" },
+};
+
+const PEOPLE = {
+  "Gonzalo": { initial: "G", color: "#4c7ea6", soft: "#e3edf5" },
+  "Luciano": { initial: "L", color: "#c1698f", soft: "#f7e6ee" },
+};
+function personInfo(name) {
+  return PEOPLE[name] || { initial: (name || "?").charAt(0).toUpperCase(), color: "#7a7468", soft: "#eeece6" };
+}
+
+/* ---------- Utilidades de fecha ---------- */
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function toISODate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function startOfWeek(date) {
+  const d = new Date(date);
+  const dow = d.getDay();
+  const diff = dow === 0 ? -6 : 1 - dow;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function fmtWeekday(d) {
+  return d.toLocaleDateString("es-AR", { weekday: "long" });
+}
+function fmtDayMonth(d) {
+  return d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" });
+}
+function fmtWeekLabel(start) {
+  const end = new Date(start.getTime() + 6 * DAY_MS);
+  return `${fmtDayMonth(start)} – ${fmtDayMonth(end)}`;
+}
+
+/* ---------- Estado ---------- */
+let tasks = loadTasks();
+let currentWeekStart = loadWeekStart();
+
+function loadTasks() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    console.error("Error leyendo tareas guardadas", e);
+    return [];
+  }
+}
+
+function saveTasks() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+}
+
+function loadWeekStart() {
+  const raw = localStorage.getItem(WEEK_START_KEY);
+  if (raw) return new Date(raw);
+  return startOfWeek(new Date());
+}
+
+function saveWeekStart() {
+  localStorage.setItem(WEEK_START_KEY, currentWeekStart.toISOString());
+}
+
+function uid() {
+  return "t_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+}
+
+/* ---------- Tiempo total de una tarea (segundos) ---------- */
+function totalSeconds(task) {
+  let secs = (task.manualMinutes || 0) * 60 + (task.timerSeconds || 0);
+  if (task.timerRunning && task.timerStartedAt) {
+    secs += Math.floor((Date.now() - task.timerStartedAt) / 1000);
+  }
+  return secs;
+}
+
+function fmtDuration(totalSecs) {
+  const h = Math.floor(totalSecs / 3600);
+  const m = Math.floor((totalSecs % 3600) / 60);
+  const s = Math.floor(totalSecs % 60);
+  if (h > 0) return `${h}h ${String(m).padStart(2, "0")}m`;
+  if (m > 0) return `${m}m ${s > 0 ? String(s).padStart(2, "0") + "s" : ""}`.trim();
+  return `${s}s`;
+}
+
+// Formatea minutos (ej. una estimación cargada a mano) sin bajar a segundos.
+function fmtMinutes(totalMinutes) {
+  const h = Math.floor(totalMinutes / 60);
+  const m = Math.round(totalMinutes % 60);
+  if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  return `${m}m`;
+}
+
+/* ---------- Render ---------- */
+const boardEl = document.getElementById("board");
+const weekLabelEl = document.getElementById("weekLabel");
+const statsRowEl = document.getElementById("statsRow");
+
+function render() {
+  boardEl.innerHTML = "";
+  weekLabelEl.textContent = fmtWeekLabel(currentWeekStart);
+
+  boardEl.appendChild(renderColumn({
+    key: "backlog",
+    title: "📥 Sin fecha",
+    subtitle: "Backlog / ideas",
+    isBacklog: true,
+  }));
+
+  const todayISO = toISODate(new Date());
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(currentWeekStart.getTime() + i * DAY_MS);
+    const iso = toISODate(d);
+    boardEl.appendChild(renderColumn({
+      key: iso,
+      title: fmtWeekday(d),
+      subtitle: fmtDayMonth(d),
+      isToday: iso === todayISO,
+    }));
+  }
+
+  renderStats(todayISO);
+  refreshDateOptions();
+}
+
+function renderStats(todayISO) {
+  const todayTasks = tasks.filter((t) => t.date === todayISO);
+  const doneToday = todayTasks.filter((t) => t.done).length;
+  const timeToday = todayTasks.reduce((sum, t) => sum + totalSeconds(t), 0);
+  const pendingWeek = tasks.filter((t) => {
+    if (t.done || !t.date) return false;
+    const diff = (new Date(t.date) - currentWeekStart) / DAY_MS;
+    return diff >= 0 && diff < 7;
+  }).length;
+  const backlogCount = tasks.filter((t) => !t.date && !t.done).length;
+
+  const stats = [
+    { value: todayTasks.length, label: "Tareas hoy" },
+    { value: `${doneToday}/${todayTasks.length || 0}`, label: "Completadas hoy" },
+    { value: fmtDuration(timeToday), label: "Tiempo trackeado hoy" },
+    { value: pendingWeek, label: "Pendientes esta semana" },
+    { value: backlogCount, label: "En backlog" },
+  ];
+
+  statsRowEl.innerHTML = stats.map((s) => `
+    <div class="stat-card">
+      <div class="stat-value">${s.value}</div>
+      <div class="stat-label">${s.label}</div>
+    </div>
+  `).join("");
+}
+
+function buildColumnHeaderHTML(title, subtitle, dayTasks) {
+  const dayTotal = dayTasks.reduce((sum, t) => sum + totalSeconds(t), 0);
+  const doneCount = dayTasks.filter((t) => t.done).length;
+  const pct = dayTasks.length ? Math.round((doneCount / dayTasks.length) * 100) : 0;
+
+  const perPerson = {};
+  dayTasks.forEach((t) => {
+    const person = t.responsible || "Sin asignar";
+    perPerson[person] = (perPerson[person] || 0) + totalSeconds(t);
+  });
+  const personBadges = Object.entries(perPerson)
+    .map(([person, secs]) => {
+      const info = personInfo(person);
+      return `<span class="person-total" style="background:${info.soft};color:${info.color}">
+        <span class="person-dot" style="background:${info.color}"></span>${info.initial}: ${fmtDuration(secs)}
+      </span>`;
+    })
+    .join("");
+
+  // Tiempo ESTIMADO (planificado al crear la tarea), acumulado por persona.
+  // Es independiente del tiempo real trackeado con el cronómetro.
+  const perPersonEstimate = {};
+  let estimateTotal = 0;
+  dayTasks.forEach((t) => {
+    if (!t.estimatedMinutes) return;
+    const person = t.responsible || "Sin asignar";
+    perPersonEstimate[person] = (perPersonEstimate[person] || 0) + t.estimatedMinutes;
+    estimateTotal += t.estimatedMinutes;
+  });
+  const estimateBadges = Object.entries(perPersonEstimate)
+    .map(([person, mins]) => {
+      const info = personInfo(person);
+      return `<span class="person-total estimate" style="border-color:${info.color};color:${info.color}">
+        <span class="person-dot" style="background:${info.color}"></span>${info.initial}: ${fmtMinutes(mins)}
+      </span>`;
+    })
+    .join("");
+
+  return `
+    <div class="column-title-row">
+      <div class="column-title">${title}</div>
+      ${dayTasks.length ? `<div class="column-count">${doneCount}/${dayTasks.length}</div>` : ""}
+    </div>
+    <div class="column-subtitle">${subtitle}</div>
+    ${dayTasks.length ? `
+      <div class="column-progress-track">
+        <div class="column-progress-fill" style="width:${pct}%"></div>
+      </div>` : ""}
+    ${estimateTotal > 0 ? `<div class="column-total estimate-total">🎯 ${fmtMinutes(estimateTotal)} estimado</div>` : ""}
+    ${estimateBadges ? `<div class="person-totals-row">${estimateBadges}</div>` : ""}
+    ${dayTotal > 0 ? `<div class="column-total">⏱ ${fmtDuration(dayTotal)} real</div>` : ""}
+    ${personBadges ? `<div class="person-totals-row">${personBadges}</div>` : ""}
+  `;
+}
+
+// Recalcula solo el contenido de los encabezados de columna (totales, barra de
+// progreso, tiempo por persona) sin re-renderizar las tarjetas — se usa en el
+// tick de cada segundo para que los cronómetros corriendo se reflejen ahí también.
+function refreshColumnHeaders() {
+  document.querySelectorAll(".column").forEach((col) => {
+    const isBacklog = col.classList.contains("backlog");
+    const key = col.dataset.dateKey;
+    const dayTasks = tasks.filter((t) => (isBacklog ? !t.date : t.date === key));
+    const headerEl = col.querySelector(".column-header");
+    if (!headerEl) return;
+    const titleEl = headerEl.querySelector(".column-title");
+    const subtitleEl = headerEl.querySelector(".column-subtitle");
+    const title = titleEl ? titleEl.textContent : "";
+    const subtitle = subtitleEl ? subtitleEl.textContent : "";
+    headerEl.innerHTML = buildColumnHeaderHTML(title, subtitle, dayTasks);
+  });
+}
+
+function renderColumn({ key, title, subtitle, isBacklog, isToday }) {
+  const col = document.createElement("div");
+  col.className = "column" + (isBacklog ? " backlog" : "") + (isToday ? " today" : "");
+  col.dataset.dateKey = isBacklog ? "" : key;
+
+  const dayTasks = tasks
+    .filter((t) => (isBacklog ? !t.date : t.date === key))
+    .sort((a, b) => (a.done === b.done ? a.createdAt - b.createdAt : a.done ? 1 : -1));
+
+  const header = document.createElement("div");
+  header.className = "column-header";
+  header.innerHTML = buildColumnHeaderHTML(title, subtitle, dayTasks);
+  col.appendChild(header);
+
+  const body = document.createElement("div");
+  body.className = "column-body";
+
+  if (dayTasks.length === 0) {
+    const hint = document.createElement("div");
+    hint.className = "empty-hint";
+    hint.textContent = "Sin tareas";
+    body.appendChild(hint);
+  } else {
+    dayTasks.forEach((t) => body.appendChild(renderCard(t)));
+  }
+
+  body.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    body.classList.add("drag-over");
+  });
+  body.addEventListener("dragleave", () => body.classList.remove("drag-over"));
+  body.addEventListener("drop", (e) => {
+    e.preventDefault();
+    body.classList.remove("drag-over");
+    const taskId = e.dataTransfer.getData("text/plain");
+    moveTask(taskId, isBacklog ? null : key);
+  });
+
+  col.appendChild(body);
+  return col;
+}
+
+function renderCard(task) {
+  const card = document.createElement("div");
+  card.className = "card" + (task.done ? " done" : "");
+  card.draggable = true;
+  card.dataset.id = task.id;
+
+  const colors = CATEGORY_COLORS[task.category] || CATEGORY_COLORS["Otro"];
+  card.style.setProperty("--cat-color", colors.line);
+  card.style.setProperty("--cat-color-soft", colors.soft);
+  card.style.setProperty("--cat-color-dark", colors.dark);
+
+  card.addEventListener("dragstart", (e) => {
+    e.dataTransfer.setData("text/plain", task.id);
+    card.classList.add("dragging");
+  });
+  card.addEventListener("dragend", () => card.classList.remove("dragging"));
+
+  const top = document.createElement("div");
+  top.className = "card-top";
+
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.checked = task.done;
+  checkbox.addEventListener("change", () => {
+    task.done = checkbox.checked;
+    if (task.done && task.timerRunning) stopTimer(task);
+    saveTasks();
+    render();
+  });
+
+  const titleWrap = document.createElement("div");
+  titleWrap.style.flex = "1";
+
+  const titleEl = document.createElement("div");
+  titleEl.className = "card-title";
+  titleEl.textContent = task.title;
+  titleEl.title = "Click para editar";
+  titleEl.addEventListener("click", () => openEditModal(task));
+
+  const metaRow = document.createElement("div");
+  metaRow.className = "card-meta-row";
+
+  const catEl = document.createElement("span");
+  catEl.className = "card-category";
+  catEl.textContent = task.category || "Otro";
+  metaRow.appendChild(catEl);
+
+  if (task.responsible) {
+    const info = personInfo(task.responsible);
+    const personEl = document.createElement("span");
+    personEl.className = "card-person";
+    personEl.style.background = info.soft;
+    personEl.style.color = info.color;
+    personEl.textContent = `👤 ${task.responsible}`;
+    metaRow.appendChild(personEl);
+  }
+
+  if (task.estimatedMinutes) {
+    const estEl = document.createElement("span");
+    estEl.className = "card-estimate";
+    estEl.textContent = `Est: ${fmtMinutes(task.estimatedMinutes)}`;
+    metaRow.appendChild(estEl);
+  }
+
+  titleWrap.appendChild(titleEl);
+  titleWrap.appendChild(metaRow);
+
+  const actions = document.createElement("div");
+  actions.className = "card-actions";
+
+  const editBtn = document.createElement("button");
+  editBtn.className = "icon-btn";
+  editBtn.title = "Editar tarea";
+  editBtn.textContent = "✎";
+  editBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openEditModal(task);
+  });
+  actions.appendChild(editBtn);
+
+  const delBtn = document.createElement("button");
+  delBtn.className = "icon-btn danger";
+  delBtn.title = "Eliminar";
+  delBtn.textContent = "✕";
+  delBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (confirm(`¿Eliminar la tarea "${task.title}"?`)) {
+      tasks = tasks.filter((t) => t.id !== task.id);
+      saveTasks();
+      render();
+    }
+  });
+  actions.appendChild(delBtn);
+
+  top.appendChild(checkbox);
+  top.appendChild(titleWrap);
+  top.appendChild(actions);
+  card.appendChild(top);
+
+  if (task.notes) {
+    const notesEl = document.createElement("div");
+    notesEl.className = "card-notes";
+    notesEl.textContent = task.notes;
+    card.appendChild(notesEl);
+  }
+
+  const timeRow = document.createElement("div");
+  timeRow.className = "card-time-row";
+
+  const timeDisplay = document.createElement("span");
+  timeDisplay.className = "time-display" + (task.timerRunning ? " running" : "");
+  timeDisplay.textContent = fmtDuration(totalSeconds(task));
+  timeDisplay.dataset.role = "time-display";
+
+  const timeBtns = document.createElement("div");
+  timeBtns.className = "card-actions";
+
+  const timerBtn = document.createElement("button");
+  timerBtn.className = "icon-btn";
+  timerBtn.title = task.timerRunning ? "Pausar cronómetro" : "Iniciar cronómetro";
+  timerBtn.textContent = task.timerRunning ? "⏸" : "▶";
+  timerBtn.addEventListener("click", () => {
+    if (task.timerRunning) {
+      stopTimer(task);
+    } else {
+      startTimer(task);
+    }
+    saveTasks();
+    render();
+  });
+
+  const manualBtn = document.createElement("button");
+  manualBtn.className = "icon-btn";
+  manualBtn.title = "Cargar tiempo manual (minutos)";
+  manualBtn.textContent = "✏️⏱";
+  manualBtn.addEventListener("click", () => {
+    const input = prompt(`Minutos a sumar a "${task.title}":`, "15");
+    if (input === null) return;
+    const mins = parseFloat(input);
+    if (!isNaN(mins) && mins !== 0) {
+      task.manualMinutes = (task.manualMinutes || 0) + mins;
+      saveTasks();
+      render();
+    }
+  });
+
+  timeBtns.appendChild(timerBtn);
+  timeBtns.appendChild(manualBtn);
+
+  timeRow.appendChild(timeDisplay);
+  timeRow.appendChild(timeBtns);
+  card.appendChild(timeRow);
+
+  return card;
+}
+
+function startTimer(task) {
+  // Una persona solo puede tener un cronómetro corriendo a la vez, pero
+  // Gonzalo y Luciano pueden tener cada uno el suyo activo en simultáneo.
+  tasks.forEach((t) => {
+    if (t.timerRunning && t.id !== task.id && t.responsible === task.responsible) stopTimer(t);
+  });
+  task.timerRunning = true;
+  task.timerStartedAt = Date.now();
+}
+
+function stopTimer(task) {
+  if (task.timerRunning && task.timerStartedAt) {
+    task.timerSeconds = (task.timerSeconds || 0) + Math.floor((Date.now() - task.timerStartedAt) / 1000);
+  }
+  task.timerRunning = false;
+  task.timerStartedAt = null;
+}
+
+function moveTask(taskId, newDateOrNull) {
+  const task = tasks.find((t) => t.id === taskId);
+  if (!task) return;
+  task.date = newDateOrNull;
+  saveTasks();
+  render();
+}
+
+/* ---------- Ticker: refresca displays de cronómetros corriendo ---------- */
+setInterval(() => {
+  const anyRunning = tasks.some((t) => t.timerRunning);
+  if (!anyRunning) return;
+  document.querySelectorAll(".card").forEach((cardEl) => {
+    const id = cardEl.dataset.id;
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+    const disp = cardEl.querySelector('[data-role="time-display"]');
+    if (disp) disp.textContent = fmtDuration(totalSeconds(task));
+  });
+  renderStats(toISODate(new Date()));
+  refreshColumnHeaders();
+}, 1000);
+
+/* ---------- Navegación de semana ---------- */
+document.getElementById("prevWeek").addEventListener("click", () => {
+  currentWeekStart = new Date(currentWeekStart.getTime() - 7 * DAY_MS);
+  saveWeekStart();
+  render();
+});
+document.getElementById("nextWeek").addEventListener("click", () => {
+  currentWeekStart = new Date(currentWeekStart.getTime() + 7 * DAY_MS);
+  saveWeekStart();
+  render();
+});
+document.getElementById("todayBtn").addEventListener("click", () => {
+  currentWeekStart = startOfWeek(new Date());
+  saveWeekStart();
+  render();
+});
+
+/* ---------- Modal nueva / editar tarea ---------- */
+const modal = document.getElementById("taskModal");
+const taskForm = document.getElementById("taskForm");
+const taskTitleInput = document.getElementById("taskTitleInput");
+const taskCategoryInput = document.getElementById("taskCategoryInput");
+const taskResponsibleInput = document.getElementById("taskResponsibleInput");
+const taskDateInput = document.getElementById("taskDateInput");
+const taskEstimateInput = document.getElementById("taskEstimateInput");
+const taskNotesInput = document.getElementById("taskNotesInput");
+const modalTitle = document.getElementById("modalTitle");
+
+let editingTaskId = null;
+
+function refreshDateOptions() {
+  const prevValue = taskDateInput.value;
+  taskDateInput.innerHTML = "";
+
+  const backlogOpt = document.createElement("option");
+  backlogOpt.value = "";
+  backlogOpt.textContent = "Sin fecha (backlog)";
+  taskDateInput.appendChild(backlogOpt);
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(currentWeekStart.getTime() + i * DAY_MS);
+    const iso = toISODate(d);
+    const opt = document.createElement("option");
+    opt.value = iso;
+    opt.textContent = `${fmtWeekday(d)} ${fmtDayMonth(d)}`;
+    taskDateInput.appendChild(opt);
+  }
+
+  if (prevValue) taskDateInput.value = prevValue;
+}
+
+function openAddModal() {
+  editingTaskId = null;
+  modalTitle.textContent = "Nueva tarea";
+  taskTitleInput.value = "";
+  taskCategoryInput.value = "Ventas B2B";
+  taskResponsibleInput.value = "Gonzalo";
+  taskEstimateInput.value = "";
+  taskNotesInput.value = "";
+  refreshDateOptions();
+  taskDateInput.value = toISODate(new Date());
+  modal.classList.remove("hidden");
+  taskTitleInput.focus();
+}
+
+function openEditModal(task) {
+  editingTaskId = task.id;
+  modalTitle.textContent = "Editar tarea";
+  taskTitleInput.value = task.title;
+  taskCategoryInput.value = task.category || "Otro";
+  taskResponsibleInput.value = task.responsible || "Gonzalo";
+  taskEstimateInput.value = task.estimatedMinutes || "";
+  taskNotesInput.value = task.notes || "";
+  refreshDateOptions();
+  taskDateInput.value = task.date || "";
+  modal.classList.remove("hidden");
+  taskTitleInput.focus();
+}
+
+function closeModal() {
+  modal.classList.add("hidden");
+  editingTaskId = null;
+}
+
+document.getElementById("openAddTask").addEventListener("click", openAddModal);
+document.getElementById("cancelTask").addEventListener("click", closeModal);
+modal.addEventListener("click", (e) => {
+  if (e.target === modal) closeModal();
+});
+
+taskForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const title = taskTitleInput.value.trim();
+  if (!title) return;
+
+  const estimateRaw = parseFloat(taskEstimateInput.value);
+  const estimatedMinutes = !isNaN(estimateRaw) && estimateRaw > 0 ? estimateRaw : null;
+
+  if (editingTaskId) {
+    const task = tasks.find((t) => t.id === editingTaskId);
+    if (task) {
+      task.title = title;
+      task.category = taskCategoryInput.value;
+      task.responsible = taskResponsibleInput.value;
+      task.estimatedMinutes = estimatedMinutes;
+      task.notes = taskNotesInput.value.trim();
+      task.date = taskDateInput.value || null;
+    }
+  } else {
+    tasks.push({
+      id: uid(),
+      title,
+      category: taskCategoryInput.value,
+      responsible: taskResponsibleInput.value,
+      estimatedMinutes: estimatedMinutes,
+      notes: taskNotesInput.value.trim(),
+      date: taskDateInput.value || null,
+      done: false,
+      manualMinutes: 0,
+      timerSeconds: 0,
+      timerRunning: false,
+      timerStartedAt: null,
+      createdAt: Date.now(),
+    });
+  }
+
+  saveTasks();
+  closeModal();
+  render();
+});
+
+/* ---------- Export / Import backup ---------- */
+document.getElementById("exportBtn").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(tasks, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const stamp = toISODate(new Date());
+  a.href = url;
+  a.download = `kore-agenda-backup-${stamp}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById("importInput").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const imported = JSON.parse(reader.result);
+      if (!Array.isArray(imported)) throw new Error("Formato inválido");
+      if (confirm(`Se van a importar ${imported.length} tareas. ¿Reemplazar los datos actuales?`)) {
+        tasks = imported;
+        saveTasks();
+        render();
+      }
+    } catch (err) {
+      alert("No se pudo leer el archivo: " + err.message);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = "";
+});
+
+/* ---------- Reporte ---------- */
+const reportModal = document.getElementById("reportModal");
+const reportRangeSelect = document.getElementById("reportRangeSelect");
+const reportCustomRange = document.getElementById("reportCustomRange");
+const reportFromInput = document.getElementById("reportFromInput");
+const reportToInput = document.getElementById("reportToInput");
+const reportPersonSelect = document.getElementById("reportPersonSelect");
+const reportOutput = document.getElementById("reportOutput");
+const reportCsvBtn = document.getElementById("reportCsvBtn");
+const reportPrintBtn = document.getElementById("reportPrintBtn");
+
+let lastReportTasks = null; // guarda el último resultado generado para CSV/impresión
+
+function openReportModal() {
+  reportRangeSelect.value = "week";
+  reportCustomRange.classList.add("hidden");
+  reportPersonSelect.value = "";
+  reportOutput.innerHTML = "";
+  reportCsvBtn.disabled = true;
+  reportPrintBtn.disabled = true;
+  lastReportTasks = null;
+  const todayISO = toISODate(new Date());
+  reportFromInput.value = todayISO;
+  reportToInput.value = todayISO;
+  reportModal.classList.remove("hidden");
+}
+
+function closeReportModal() {
+  reportModal.classList.add("hidden");
+}
+
+document.getElementById("openReportBtn").addEventListener("click", openReportModal);
+document.getElementById("closeReportBtn").addEventListener("click", closeReportModal);
+reportModal.addEventListener("click", (e) => {
+  if (e.target === reportModal) closeReportModal();
+});
+
+reportRangeSelect.addEventListener("change", () => {
+  reportCustomRange.classList.toggle("hidden", reportRangeSelect.value !== "custom");
+});
+
+function getReportDateRange() {
+  const mode = reportRangeSelect.value;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (mode === "day") {
+    const iso = toISODate(today);
+    return { from: iso, to: iso };
+  }
+  if (mode === "week") {
+    const start = startOfWeek(today);
+    const end = new Date(start.getTime() + 6 * DAY_MS);
+    return { from: toISODate(start), to: toISODate(end) };
+  }
+  if (mode === "month") {
+    const start = new Date(today.getFullYear(), today.getMonth(), 1);
+    const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    return { from: toISODate(start), to: toISODate(end) };
+  }
+  // custom
+  return { from: reportFromInput.value, to: reportToInput.value };
+}
+
+function generateReport() {
+  const { from, to } = getReportDateRange();
+  if (!from || !to) {
+    reportOutput.innerHTML = `<div class="report-empty">Elegí un rango de fechas válido.</div>`;
+    reportCsvBtn.disabled = true;
+    reportPrintBtn.disabled = true;
+    lastReportTasks = null;
+    return;
+  }
+
+  const personFilter = reportPersonSelect.value;
+  const filtered = tasks
+    .filter((t) => t.date && t.date >= from && t.date <= to)
+    .filter((t) => !personFilter || t.responsible === personFilter)
+    .sort((a, b) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt);
+
+  lastReportTasks = filtered;
+
+  if (filtered.length === 0) {
+    reportOutput.innerHTML = `<div class="report-empty">No hay tareas con fecha asignada en ese rango.</div>`;
+    reportCsvBtn.disabled = true;
+    reportPrintBtn.disabled = true;
+    return;
+  }
+
+  reportCsvBtn.disabled = false;
+  reportPrintBtn.disabled = false;
+
+  // ---- Resumen general ----
+  const totalAssigned = filtered.length;
+  const totalDone = filtered.filter((t) => t.done).length;
+  const totalEstimated = filtered.reduce((s, t) => s + (t.estimatedMinutes || 0), 0);
+  const totalTracked = filtered.reduce((s, t) => s + totalSeconds(t), 0);
+
+  const summaryHTML = `
+    <div class="report-summary">
+      <div class="stat-card"><div class="stat-value">${totalAssigned}</div><div class="stat-label">Asignadas</div></div>
+      <div class="stat-card"><div class="stat-value">${totalDone}/${totalAssigned}</div><div class="stat-label">Terminadas</div></div>
+      <div class="stat-card"><div class="stat-value">${fmtMinutes(totalEstimated)}</div><div class="stat-label">Tiempo estimado</div></div>
+      <div class="stat-card"><div class="stat-value">${fmtDuration(totalTracked)}</div><div class="stat-label">Tiempo real</div></div>
+    </div>
+  `;
+
+  // ---- Resumen por persona ----
+  const byPerson = {};
+  filtered.forEach((t) => {
+    const person = t.responsible || "Sin asignar";
+    if (!byPerson[person]) byPerson[person] = { assigned: 0, done: 0, estimated: 0, tracked: 0 };
+    byPerson[person].assigned++;
+    if (t.done) byPerson[person].done++;
+    byPerson[person].estimated += t.estimatedMinutes || 0;
+    byPerson[person].tracked += totalSeconds(t);
+  });
+  const personSummaryHTML = `
+    <div class="report-person-summary">
+      ${Object.entries(byPerson).map(([person, d]) => {
+        const info = personInfo(person);
+        return `
+          <div class="report-person-card" style="background:${info.soft};color:${info.color}">
+            <div class="rp-name">👤 ${person}</div>
+            <div class="rp-line"><span>Asignadas</span><span>${d.assigned}</span></div>
+            <div class="rp-line"><span>Terminadas</span><span>${d.done}/${d.assigned}</span></div>
+            <div class="rp-line"><span>🎯 Estimado</span><span>${fmtMinutes(d.estimated)}</span></div>
+            <div class="rp-line"><span>⏱ Real</span><span>${fmtDuration(d.tracked)}</span></div>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+
+  // ---- Detalle por día ----
+  const byDay = {};
+  filtered.forEach((t) => {
+    if (!byDay[t.date]) byDay[t.date] = [];
+    byDay[t.date].push(t);
+  });
+
+  const daysHTML = Object.keys(byDay).sort().map((dateISO) => {
+    const dayTasksList = byDay[dateISO];
+    const d = new Date(dateISO + "T00:00:00");
+    const doneInDay = dayTasksList.filter((t) => t.done).length;
+    const rows = dayTasksList.map((t) => `
+      <tr>
+        <td class="${t.done ? "rt-title-done" : ""}">${escapeHTML(t.title)}</td>
+        <td>${escapeHTML(t.category || "Otro")}</td>
+        <td>${escapeHTML(t.responsible || "Sin asignar")}</td>
+        <td class="${t.done ? "rt-done" : "rt-pending"}">${t.done ? "Hecha" : "Pendiente"}</td>
+        <td>${t.estimatedMinutes ? fmtMinutes(t.estimatedMinutes) : "—"}</td>
+        <td>${totalSeconds(t) > 0 ? fmtDuration(totalSeconds(t)) : "—"}</td>
+      </tr>
+    `).join("");
+
+    return `
+      <div class="report-day-group">
+        <div class="report-day-title">
+          ${fmtWeekday(d)} ${fmtDayMonth(d)}
+          <span class="rdt-sub">${doneInDay}/${dayTasksList.length} terminadas</span>
+        </div>
+        <table class="report-table">
+          <thead>
+            <tr><th>Tarea</th><th>Categoría</th><th>Responsable</th><th>Estado</th><th>Estimado</th><th>Real</th></tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    `;
+  }).join("");
+
+  reportOutput.innerHTML = summaryHTML + personSummaryHTML + daysHTML;
+}
+
+document.getElementById("generateReportBtn").addEventListener("click", generateReport);
+
+function escapeHTML(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function csvEscape(value) {
+  const str = String(value ?? "");
+  if (/[",\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
+  return str;
+}
+
+reportCsvBtn.addEventListener("click", () => {
+  if (!lastReportTasks || !lastReportTasks.length) return;
+  const header = ["Fecha", "Tarea", "Categoría", "Responsable", "Estado", "Tiempo estimado (min)", "Tiempo real (min)"];
+  const rows = lastReportTasks.map((t) => [
+    t.date,
+    t.title,
+    t.category || "",
+    t.responsible || "",
+    t.done ? "Hecha" : "Pendiente",
+    t.estimatedMinutes || 0,
+    Math.round(totalSeconds(t) / 60),
+  ]);
+  const csv = [header, ...rows].map((r) => r.map(csvEscape).join(",")).join("\n");
+  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const { from, to } = getReportDateRange();
+  a.href = url;
+  a.download = `kore-agenda-reporte-${from}_a_${to}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+reportPrintBtn.addEventListener("click", () => {
+  document.body.classList.add("print-report-mode");
+  window.print();
+});
+window.addEventListener("afterprint", () => {
+  document.body.classList.remove("print-report-mode");
+});
+
+/* ---------- Init ---------- */
+render();
+</script>
+</body>
+</html>
