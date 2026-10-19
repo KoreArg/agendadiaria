@@ -429,6 +429,7 @@
         <span id="syncBadgeDot" class="sync-dot"></span>
         <span id="syncBadgeText">Solo este dispositivo</span>
       </button>
+      <button id="syncRefreshBtn" class="btn ghost small" title="Actualizar ahora">🔄</button>
 
       <button id="openAddCampaign" class="btn primary">+ Nueva campaña</button>
     </div>
@@ -591,6 +592,9 @@ function loadCampaigns() {
   }
 }
 function saveCampaigns() {
+  // Guarda en este dispositivo y sube el cambio a la nube (debounced) cada
+  // vez que se hace algo con una campaña: crear, editar o borrar. No hay
+  // sondeo automático aparte de esto.
   localStorage.setItem(STORAGE_KEY, JSON.stringify(campaigns));
   scheduleCloudPush();
 }
@@ -956,7 +960,41 @@ async function pushField(cfg, fieldName, value) {
 function scheduleCloudPush() {
   if (!syncConfig) return;
   clearTimeout(pushDebounceTimer);
-  pushDebounceTimer = setTimeout(pushToCloudNow, 900);
+  pushDebounceTimer = setTimeout(pushToCloudNow, 1500);
+}
+
+// Guardamos la última lectura de la nube para no gastar un pedido extra de
+// "GET" cada vez que subimos un cambio — el plan gratis de JSONBin tiene un
+// tope de pedidos, así que hay que ser cuidadosos.
+let lastKnownRemote = null;
+let lastKnownRemoteAt = 0;
+const REMOTE_CACHE_FRESH_MS = 45000;
+
+// Sube "value" bajo "fieldName" sin pisar otras claves del documento
+// compartido (ej: "tasks" de la Agenda). Reutiliza la última lectura si es
+// reciente, para no gastar un GET de más por cada cambio.
+async function pushField(cfg, fieldName, value) {
+  let remote;
+  if (lastKnownRemote && Date.now() - lastKnownRemoteAt < REMOTE_CACHE_FRESH_MS) {
+    remote = lastKnownRemote;
+  } else {
+    try {
+      remote = (await jsonbinRequest(cfg, "GET")) || {};
+      lastKnownRemote = remote;
+      lastKnownRemoteAt = Date.now();
+    } catch (e) {
+      remote = {};
+    }
+  }
+  remote = { ...remote, [fieldName]: value, updatedAt: Date.now() };
+  await jsonbinRequest(cfg, "PUT", remote);
+  lastKnownRemote = remote;
+  lastKnownRemoteAt = Date.now();
+  return remote;
+}
+
+function isRateLimitError(e) {
+  return e && (e.status === 429 || /exhaust/i.test(e.message || ""));
 }
 
 async function pushToCloudNow() {
@@ -966,43 +1004,91 @@ async function pushToCloudNow() {
     await pushField(syncConfig, "campaigns", campaigns);
     updateSyncBadgeIdle();
   } catch (e) {
-    setSyncBadge("error", "Error al sincronizar");
+    if (isRateLimitError(e)) {
+      setSyncBadge("error", "Límite de la nube alcanzado");
+      stopSyncPolling();
+    } else {
+      setSyncBadge("error", "Error al sincronizar");
+    }
     console.error("Error subiendo a la nube:", e);
   }
 }
 
 async function pullFromCloudNow() {
   if (!syncConfig) return null;
-  return jsonbinRequest(syncConfig, "GET");
+  const remote = await jsonbinRequest(syncConfig, "GET");
+  lastKnownRemote = remote;
+  lastKnownRemoteAt = Date.now();
+  return remote;
 }
 
+// Ya no hay un chequeo automático cada X segundos (eso era lo que agotaba la
+// cuota gratuita de JSONBin). Ahora la nube se consulta/sube solo en estos
+// momentos puntuales:
+//   1) al hacer algo con una campaña: crear, editar o borrar (sube el
+//      cambio, ver scheduleCloudPush, llamado desde saveCampaigns más
+//      arriba),
+//   2) al volver a esta pestaña después de tenerla en segundo plano
+//      (ver el "visibilitychange" más abajo),
+//   3) al tocar el botón 🔄 "Actualizar ahora".
+// `startSyncPolling`/`stopSyncPolling` quedan como funciones vacías por
+// compatibilidad con el resto del código (ya no inician ningún intervalo).
 function startSyncPolling() {
   stopSyncPolling();
-  if (!syncConfig) return;
-  syncPollInterval = setInterval(async () => {
-    if (isAnyModalOpen() || syncInFlight) return;
-    try {
-      const remote = await pullFromCloudNow();
-      if (remote && Array.isArray(remote.campaigns)) {
-        const remoteStr = JSON.stringify(remote.campaigns);
-        const localStr = JSON.stringify(campaigns);
-        if (remoteStr !== localStr) {
-          campaigns = remote.campaigns;
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(campaigns));
-          render();
-        }
-      }
-      updateSyncBadgeIdle();
-    } catch (e) {
-      setSyncBadge("error", "Sin conexión a la nube");
-      console.error("Error consultando la nube:", e);
-    }
-  }, 9000);
 }
+
+// Al volver a la pestaña, hacemos una sola consulta a la nube para traer lo
+// que haya cambiado mientras no estaba a la vista.
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && syncConfig) {
+    pullFromCloudNow()
+      .then((remote) => {
+        if (remote && Array.isArray(remote.campaigns)) {
+          const remoteStr = JSON.stringify(remote.campaigns);
+          if (remoteStr !== JSON.stringify(campaigns)) {
+            campaigns = remote.campaigns;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(campaigns));
+            render();
+          }
+        }
+        updateSyncBadgeIdle();
+      })
+      .catch((e) => console.error("Error consultando la nube:", e));
+  }
+});
+
 function stopSyncPolling() {
   if (syncPollInterval) clearInterval(syncPollInterval);
   syncPollInterval = null;
 }
+
+async function manualSyncNow() {
+  if (!syncConfig) {
+    openSyncModal();
+    return;
+  }
+  setSyncBadge("syncing", "Sincronizando…");
+  try {
+    const remote = await pullFromCloudNow();
+    if (remote && Array.isArray(remote.campaigns)) {
+      campaigns = remote.campaigns;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(campaigns));
+      render();
+    }
+    updateSyncBadgeIdle();
+  } catch (e) {
+    if (isRateLimitError(e)) {
+      setSyncBadge("error", "Límite de la nube alcanzado");
+    } else {
+      setSyncBadge("error", "Sin conexión a la nube");
+    }
+    console.error("Error consultando la nube:", e);
+  }
+}
+document.getElementById("syncRefreshBtn").addEventListener("click", (e) => {
+  e.stopPropagation();
+  manualSyncNow();
+});
 
 /* ---------- Modal de sincronización ---------- */
 const syncModal = document.getElementById("syncModal");
@@ -1070,6 +1156,8 @@ syncForm.addEventListener("submit", async (e) => {
 
   try {
     const remote = await jsonbinRequest(candidateCfg, "GET");
+    lastKnownRemote = remote;
+    lastKnownRemoteAt = Date.now();
     const remoteCampaigns = Array.isArray(remote && remote.campaigns) ? remote.campaigns : [];
 
     if (remoteCampaigns.length > 0 && campaigns.length > 0 && JSON.stringify(remoteCampaigns) !== JSON.stringify(campaigns)) {
@@ -1097,7 +1185,11 @@ syncForm.addEventListener("submit", async (e) => {
     render();
     setTimeout(closeSyncModal, 1200);
   } catch (err) {
-    showSyncMessage("No se pudo conectar: " + err.message + ". Revisá el Bin ID y la API Key.", "error");
+    if (isRateLimitError(err)) {
+      showSyncMessage("Se agotó la cuota gratuita de pedidos de JSONBin para este Bin/API Key. Esperá a que se renueve (suele ser mensual) o creá una cuenta/bin nuevo en JSONBin.io.", "error");
+    } else {
+      showSyncMessage("No se pudo conectar: " + err.message + ". Revisá el Bin ID y la API Key.", "error");
+    }
   } finally {
     syncSubmitBtn.disabled = false;
   }
